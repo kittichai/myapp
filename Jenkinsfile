@@ -1,41 +1,44 @@
 pipeline {
     agent any
+
     environment {
+        // ใช้ Jenkins Credentials ID แบบ Secret Text หรือ Username/Password
         DOCKERHUB_CREDENTIALS = credentials('docker-hub-credentials')
-        DOCKER_IMAGE = "<your-dockerhub-username>/myapp"
+        DOCKER_IMAGE = "https://hub.docker.com/repository/docker/keng2docker/jenkin_hub"   // เปลี่ยนเป็น Docker Hub จริงของคุณ
+        DOCKER_TAG = "latest"
     }
+
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/kittichai/myapp.git', branch: 'main'
+                  git url: 'https://github.com/kittichai/myapp.git', branch: 'main'
             }
         }
+
         stage('Build Docker Image') {
             steps {
-                script {
-                    def image = docker.build("${DOCKER_IMAGE}:${env.BUILD_NUMBER}")
-                }
+                sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
             }
         }
-        stage('Push to Docker Hub') {
+
+        stage('Login & Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
-                        docker.image("${DOCKER_IMAGE}:${env.BUILD_NUMBER}").push()
-                        docker.image("${DOCKER_IMAGE}:${env.BUILD_NUMBER}").push('latest')
-                    }
+                    sh """
+                        echo "$DOCKERHUB_CREDENTIALS_PSW" | docker login -u "$DOCKERHUB_CREDENTIALS_USR" --password-stdin
+                        docker push $DOCKER_IMAGE:$DOCKER_TAG
+                    """
                 }
-            }
-        }
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh 'kubectl apply -f k8s/deployment.yaml'
             }
         }
     }
+
     post {
-        always {
-            sh 'docker logout'
+        success {
+            echo "✅ Build and Push Success!"
+        }
+        failure {
+            echo "❌ Build or Push Failed."
         }
     }
 }
