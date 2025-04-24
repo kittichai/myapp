@@ -1,44 +1,57 @@
 pipeline {
     agent any
-
     environment {
-        // ใช้ Jenkins Credentials ID แบบ Secret Text หรือ Username/Password
-        DOCKERHUB_CREDENTIALS = credentials('docker-hub-credentials')
-        DOCKER_IMAGE = "https://hub.docker.com/repository/docker/keng2docker/jenkin_hub"   // เปลี่ยนเป็น Docker Hub จริงของคุณ
-        DOCKER_TAG = "latest"
+        // กำหนดตัวแปรสำหรับ Docker Hub credentials
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials-id')
+        // ชื่อ Docker image
+        IMAGE_NAME = "myapp:${env.BUILD_NUMBER}"
     }
-
     stages {
         stage('Checkout') {
             steps {
-                  git url: 'https://github.com/kittichai/myapp.git', branch: 'main'
+                // ดึงโค้ดจาก GitHub
+                git branch: 'main', url: 'https://github.com/kittichai/myapp.git'
             }
         }
-
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
-            }
-        }
-
-        stage('Login & Push to Docker Hub') {
-            steps {
+                // Build Docker image จาก Dockerfile
                 script {
-                    sh """
-                        echo "$DOCKERHUB_CREDENTIALS_PSW" | docker login -u "$DOCKERHUB_CREDENTIALS_USR" --password-stdin
-                        docker push $DOCKER_IMAGE:$DOCKER_TAG
-                    """
+                    dockerImage = docker.build("${IMAGE_NAME}")
                 }
             }
         }
+        stage('Test') {
+            steps {
+                // รัน container เพื่อทดสอบ (ตัวอย่าง)
+                sh 'docker run --rm ${IMAGE_NAME} npm test'
+            }
+        }
+        stage('Push to Docker Hub') {
+            steps {
+                // ล็อกอินและ push image ไป Docker Hub
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+                sh 'docker tag ${IMAGE_NAME} your-dockerhub-username/${IMAGE_NAME}'
+                sh 'docker push your-dockerhub-username/${IMAGE_NAME}'
+            }
+        }
+        stage('Cleanup') {
+            steps {
+                // ลบ image ในเครื่องเพื่อประหยัดพื้นที่
+                sh 'docker rmi ${IMAGE_NAME}'
+            }
+        }
     }
-
     post {
+        always {
+            // ล้าง workspace
+            cleanWs()
+        }
         success {
-            echo "✅ Build and Push Success!"
+            echo 'Pipeline completed successfully!'
         }
         failure {
-            echo "❌ Build or Push Failed."
+            echo 'Pipeline failed!'
         }
     }
 }
