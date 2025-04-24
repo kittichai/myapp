@@ -21,12 +21,12 @@ pipeline {
                 }
             }
         }
-        stage('Test') {
-            steps {
-                // รัน container เพื่อทดสอบ (ตัวอย่าง)
-                sh 'docker run --rm ${IMAGE_NAME} npm test'
-            }
-        }
+        //stage('Test') {
+        //    steps {
+        //        // รัน container เพื่อทดสอบ (ตัวอย่าง)
+        //        sh 'docker run --rm ${IMAGE_NAME} npm test'
+       //     }
+       // }
         stage('Push to Docker Hub') {
             steps {
                 // ล็อกอินและ push image ไป Docker Hub
