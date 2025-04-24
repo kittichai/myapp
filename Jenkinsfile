@@ -32,7 +32,7 @@ pipeline {
                 // ล็อกอินและ push image ไป Docker Hub
                 sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
                 sh 'docker tag ${IMAGE_NAME} ${DOCKER_USER}/${IMAGE_NAME}'
-                sh 'docker push your-dockerhub-username/${IMAGE_NAME}'
+                sh 'docker push ${DOCKER_USER}/${IMAGE_NAME}'
             }
         }
         stage('Cleanup') {
