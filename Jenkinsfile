@@ -6,7 +6,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main','https://github.com/kittichai/myapp.git' main
+                git branch: 'main','https://github.com/kittichai/myapp.git'
             }
         }
         stage('SonarQube Analysis') {
